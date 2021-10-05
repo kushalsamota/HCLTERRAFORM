@@ -1,0 +1,331 @@
+=============================
+resource "aws_iam_user" "myuser" {
+    name = "abc${count.index}"
+    path = "/system/"
+    count = 5
+}
+=============================
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  count = 3
+}
+=============================
+variable "namesofusers" {
+  type = list
+  default = ["sachin","gaurav","saket","alice","bob","sarah"]
+}
+
+resource "aws_iam_user" "myuser" {
+    name = var.namesofusers[count.index]
+    path = "/system/"
+    count = 6
+}
+================================
+resource "aws_ebs_volume" "ebsvol1" {
+  availability_zone = "ap-south-1a"
+  size              = 1
+  type = "gp2"
+}
+ 
+
+resource "aws_instance" "ec2instance" {
+  ami                    = "ami-0a23ccb2cdd9286bb"
+  instance_type          = "t2.micro"
+  availability_zone = "ap-south-1a"
+    tags = {
+    Name = "DBINSTANCE"
+  }
+}
+ 
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.ebsvol1.id
+  instance_id = aws_instance.ec2instance.id
+}
+================================
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  tags = local.common_tags
+}
+
+locals {
+  service_name = "forum"
+  owner        = "Community Team"
+}
+
+locals {
+  common_tags = {
+    Service = local.service_name
+    Owner   = local.owner
+  }
+}
+================================
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = var.instancetype
+  tags = local.common_tags
+}
+
+variable "instancetype" {
+  default = "t2.micro"
+}
+
+locals {
+  service_name = "forum"
+  owner        = "Community Team"
+}
+
+locals {
+  common_tags = {
+    Service = local.service_name
+    Owner   = local.owner
+    typeofinstance = "${var.instancetype}"
+  }
+}
+=======================================
+resource "aws_instance" "ec2instance" {
+  ami           = lookup(var.ami,var.region)
+  instance_type = "t2.micro"
+  count = 2
+  tags = {
+    Name = element(var.tags,count.index)
+  }
+}
+
+variable "tags" {
+  type = list
+  default = ["firstec2","secondec2"]
+}
+
+variable "region" {}
+
+variable "ami" {
+  type = map
+  default = {
+    "us-east-1" =  "ami-087c17d1fe0178315"
+    "ap-south-1" = "ami-0a23ccb2cdd9286bb"
+    "us-west-1" = "ami-011996ff98de391d1"
+  }
+}
+
+locals {
+  time = formatdate("DD MMM YYYY hh:mm ZZZ", timestamp())
+}
+
+output "timestamp" {
+  value = local.time
+}
+=======================================
+go to powershell and run ssh-keygen and enter enter enter. do not give any passphrase
+than copy that id_rsa and id_rsa.pub to your terraform directory
+
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+}
+
+resource "aws_key_pair" "key" {
+    key_name   = "deployer-key"
+    public_key = file("${path.module}/id_rsa.pub")
+}
+
+=============================================
+resource "aws_instance" "ec2instance" {
+  ami           = data.aws_ami.app_ami.id
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+}
+
+data "aws_ami" "app_ami" {
+  most_recent      = true
+  owners           = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
+}
+
+variable "region" {}
+
+define region = var.region in provider.tf
+=======================================
+resource "aws_instance" "ec2instance" {
+  ami           = data.aws_ami.app_ami.id
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+}
+
+data "aws_ami" "app_ami" {
+  most_recent      = true
+  owners           = ["309956199498"]
+
+  filter {
+    name   = "name"
+    values = ["RHEL_HA-8.4.0_HVM*"]
+  }
+}
+
+variable "region" {}
+define region = var.region in provider.tf
+==========================================
+resource "aws_instance" "ec2instance" {
+  ami           = data.aws_ami.app_ami.id
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+}
+
+data "aws_ami" "app_ami" {
+  most_recent      = true
+  owners           = ["099720109477"]
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20210430"]
+  }
+}
+
+variable "region" {}
+define region = var.region in provider.tf
+===============================================
+dynamic blocks
+
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+}
+
+variable "sg_ports" {
+  type = list(number)
+  default = ["443","80","22","53"]
+}
+
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+dynamic  "ingress" {
+  for_each = var.sg_ports
+    content {
+      description      = "TLS from VPC"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+  }
+}
+==============================================
+iterator
+
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+}
+
+variable "sg_ports" {
+  type = list(number)
+  default = ["443","80","22","53"]
+}
+
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+dynamic  "ingress" {
+  for_each = var.sg_ports
+  iterator = port
+    content {
+      description      = "TLS from VPC"
+      from_port        = port.value
+      to_port          = port.value
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+  }
+}
+=========================================
+splat expression
+resource "aws_iam_user" "iamuser" {
+  path = "/system/"
+  name =  "iamuser${count.index}"
+  count = 2
+}
+
+output "arns" {
+  value = aws_iam_user.iamuser[*].arn
+}
+================================
+provisioners - remote
+
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo amazon-linux-extras install -y nginx1.12",
+      "sudo systemctl start nginx"
+    ]
+  }
+  provisioner "remote-exec" {
+    when = destroy
+    inline = [
+      "echo hello"
+    ]
+  }
+  connection {
+    type = "ssh"
+    user = "ec2-user"
+    private_key = file("./id_rsa")
+    host = self.public_ip
+       }
+
+}
+
+resource "aws_key_pair" "key" {
+    key_name   = "deployer-key"
+    public_key = file("${path.module}/id_rsa.pub")
+}
+=======================================
+provisioner - local
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+
+  provisioner "local-exec" {
+       command = "echo ${aws_instance.ec2instance.private_ip} > ip.txt"
+}
+}
+
+resource "aws_key_pair" "key" {
+    key_name   = "deployer-key"
+    public_key = file("${path.module}/id_rsa.pub")
+}
+=======================================
+provision failure behaviour
+resource "aws_instance" "ec2instance" {
+  ami           = "ami-0a23ccb2cdd9286bb"
+  instance_type = "t2.micro"
+  key_name = "deployer-key"
+
+  provisioner "local-exec" {
+       command = "cbf ${aws_instance.ec2instance.private_ip} > ip.txt"
+       on_failure = continue
+}
+}
+
+resource "aws_key_pair" "key" {
+    key_name   = "deployer-key"
+    public_key = file("${path.module}/id_rsa.pub")
+}
+======================================
+
+
+
