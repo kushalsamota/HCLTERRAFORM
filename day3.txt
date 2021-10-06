@@ -1,0 +1,26 @@
+resource "aws_instance" "webserver" {
+  ami           = "unknown"
+  instance_type = "unknown"
+
+  tags = {
+    Name = "kushal"
+  }
+}
+
+resource "aws_s3_bucket" "kushal-bucket123" {
+  # (resource arguments)
+}
+
+resource "aws_iam_user" "lb" {
+  name = "loadbalancer"
+  path = "/system/"
+
+  tags = {
+    tag-key = "tag-value"
+  }
+}
+
+
+terraform import aws_s3_bucket.kushal-bucket123 kushal-bucket123
+terraform import aws_instance.webserver i-04f666819e7d44942
+
